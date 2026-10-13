@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="color-scheme" content="light dark">
+<title>Exercise 21 Reader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+</head>
+<body>
+<div class="page" id="page">
+  <header>
+    <div class="user" id="user" hidden>
+      <img id="uimg" alt="" width="32" height="32" referrerpolicy="no-referrer">
+      <span id="uname"></span>
+      <button class="btn" id="logout" type="button">Chiqish</button>
+    </div>
+    <p class="eyebrow">Part 3 · Exercise 21</p>
+    <h1>Lithuania: sarlavhalarni toping</h1>
+    <p class="lead">Bilmagan so'zingizni bosing: tarjimasi so'zning ustida chiqadi. Yana bossangiz, tarjima yashiriladi. Tarjimani o'zgartirish uchun uning o'zini bosing. Tarjimasi yo'q so'zni bossangiz, o'zingiz yozasiz.</p>
+  </header>
+
+  <section class="login" id="login" hidden>
+    <h2>Davom etish uchun kiring</h2>
+    <p>Tarjimalaringiz va javoblaringiz Google hisobingizga bog'lanadi, istalgan qurilmada o'zingizniki ochiladi.</p>
+    <button class="btn primary" id="signin" type="button">Google bilan kirish</button>
+    <p class="err" id="loginerr" role="alert"></p>
+  </section>
+
+  <div id="app">
+  <div class="bar">
+    <button class="btn" id="showall" type="button">Hammasini ko'rsatish</button>
+    <button class="btn" id="hideall" type="button">Hammasini yashirish</button>
+    <button class="btn primary" id="check" type="button">Javoblarni tekshirish</button>
+    <button class="btn" id="reset" type="button">Javoblarni tozalash</button>
+    <span class="status" id="status" aria-live="polite"></span>
+    <span class="db" id="db">Baza: tekshirilmoqda</span>
+  </div>
+
+  <section class="task">
+    <p class="en">Read the text and choose the correct heading for each paragraph from the list of headings below. There are more headings than paragraphs, so you will not use all of them. You cannot use any heading more than once.</p>
+    <p class="uz">Matnni o'qing va har bir paragraf uchun ro'yxatdan to'g'ri sarlavhani tanlang. Sarlavhalar paragraflardan ko'p, hammasi ishlatilmaydi. Bitta sarlavhani ikki marta ishlatib bo'lmaydi.</p>
+    <ul class="bank" id="bank"></ul>
+  </section>
+
+  <div id="qs"></div>
+
+  <section class="vocab">
+    <h2>Mening lug'atim</h2>
+    <p class="sub">O'zingiz yozgan yoki o'zgartirgan tarjimalar shu yerda yig'iladi. Bu yerdan ham o'zgartirish yoki o'chirish mumkin.</p>
+    <ul class="vl" id="vl"></ul>
+  </section>
+  </div>
+</div>
+
+<div id="pop" hidden role="dialog" aria-label="So'z tarjimasi">
+  <p class="pw"><span id="pword"></span><span class="hint" id="phint"></span></p>
+  <input id="pin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="O'zbekcha tarjima">
+  <div class="row">
+    <button class="btn primary" id="psave" type="button">Saqlash</button>
+    <button class="btn" id="pspeak" type="button">Eshitish</button>
+    <button class="btn warn" id="pdel" type="button">O'chirish</button>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="firebase-config.js"></script>
+<script src="store.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

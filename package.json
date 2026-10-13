@@ -1,0 +1,9 @@
+{
+  "name": "exercise21",
+  "version": "1.0.0",
+  "description": "Exercise 21 reader with SQLite storage",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=22.13" },
+  "private": true
+}
