@@ -22,7 +22,7 @@ var store=(function(){
     });
   }
   function fail(e){lastError=(e&&e.code)||(e&&e.message)||"xato";mode="local";}
-  function localState(){return {vocab:ls("ex21-vocab",{}),answers:ls("ex21-answers",{})};}
+  function localState(){return {vocab:ls("ex21-vocab",{}),answers:ls("ex21-answers",{}),shown:ls("ex21-shown",[])};}
   return {
     mode:function(){return mode;},
     isOnline:function(){return mode!=="local";},
@@ -34,14 +34,15 @@ var store=(function(){
     load:function(){
       lastError="";
       if(fsdb){
-        return Promise.all([base().collection("vocab").get(),base().collection("meta").doc("answers").get()]).then(function(r){
+        return Promise.all([base().collection("vocab").get(),base().collection("meta").doc("answers").get(),base().collection("meta").doc("shown").get()]).then(function(r){
           var v={};r[0].forEach(function(d){v[d.id]=d.data().translation;});
           mode="firestore";
-          return {vocab:v,answers:r[1].exists?r[1].data():{}};
+          var sh=r[2].exists&&Array.isArray(r[2].data().list)?r[2].data().list:[];
+          return {vocab:v,answers:r[1].exists?r[1].data():{},shown:sh};
         }).catch(function(e){fail(e);return localState();});
       }
       return api("GET","/api/state").then(function(s){
-        mode="server";return {vocab:s.vocab||{},answers:s.answers||{}};
+        mode="server";return {vocab:s.vocab||{},answers:s.answers||{},shown:ls("ex21-shown",[])};
       }).catch(function(){mode="local";return localState();});
     },
     saveVocab:function(all,word,tr){
@@ -53,6 +54,10 @@ var store=(function(){
       lsSet("ex21-vocab",all);
       if(mode==="firestore")base().collection("vocab").doc(word).delete().catch(fail);
       else if(mode==="server")api("DELETE","/api/vocab/"+encodeURIComponent(word)).catch(fail);
+    },
+    saveShown:function(list){
+      lsSet("ex21-shown",list);
+      if(mode==="firestore")base().collection("meta").doc("shown").set({list:list}).catch(fail);
     },
     saveAnswers:function(all){
       lsSet("ex21-answers",all);

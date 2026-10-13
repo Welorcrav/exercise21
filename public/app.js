@@ -4,6 +4,7 @@ function sug(k){return SUG[k]||EASY[k]||"";}
 var vocab={}, answers={}, shown={}, curKey=null, curEl=null;
 function say(m){document.getElementById("status").textContent=m;}
 function trOf(k){return vocab[k]||sug(k)||"";}
+function persistShown(){store.saveShown(Object.keys(shown));}
 function showDb(){
   var el=document.getElementById("db"),m=store.mode();
   el.textContent=m==="firestore"?"Baza: Firebase Firestore":(m==="server"?"Baza: server (SQLite)":"Baza: yo'q (brauzerda saqlanadi)");
@@ -122,11 +123,11 @@ function commit(){
   var v=pin.value.trim(),i=curEl?curEl.dataset.i:null;
   setWord(curKey,v);
   if(v&&i!==null)shown[i]=true;
-  refreshWords();renderVocab();closePop();
+  refreshWords();renderVocab();persistShown();closePop();
 }
 document.getElementById("psave").addEventListener("click",commit);
 document.getElementById("pdel").addEventListener("click",function(){
-  if(curKey){setWord(curKey,"");if(curEl)delete shown[curEl.dataset.i];refreshWords();renderVocab();}
+  if(curKey){setWord(curKey,"");if(curEl)delete shown[curEl.dataset.i];refreshWords();renderVocab();persistShown();}
   closePop();
 });
 document.getElementById("pspeak").addEventListener("click",function(){
@@ -139,7 +140,7 @@ function activate(w,editT){
   if(editT||!trOf(k)){openPop(w);return;}
   closePop();
   if(shown[i])delete shown[i];else shown[i]=true;
-  refreshWords();
+  refreshWords();persistShown();
 }
 qsEl.addEventListener("click",function(e){
   var w=e.target.closest(".w");if(!w)return;e.stopPropagation();
@@ -153,9 +154,9 @@ document.addEventListener("click",function(e){if(!pop.hidden&&!pop.contains(e.ta
 /* ---------- tugmalar ---------- */
 document.getElementById("showall").addEventListener("click",function(){
   document.querySelectorAll(".w").forEach(function(w){if(SUG[w.dataset.k]||vocab[w.dataset.k])shown[w.dataset.i]=true;});
-  refreshWords();say("Qiyin so'zlarning tarjimasi ko'rsatildi.");
+  refreshWords();persistShown();say("Qiyin so'zlarning tarjimasi ko'rsatildi.");
 });
-document.getElementById("hideall").addEventListener("click",function(){shown={};refreshWords();say("Hamma tarjima yashirildi.");});
+document.getElementById("hideall").addEventListener("click",function(){shown={};refreshWords();persistShown();say("Hamma tarjima yashirildi.");});
 document.getElementById("check").addEventListener("click",function(){
   var score=0;
   QS.forEach(function(it){
@@ -183,6 +184,7 @@ var appEl=document.getElementById("app"),loginEl=document.getElementById("login"
 function loadState(){
   store.load().then(function(s){
     vocab=s.vocab;answers=s.answers;shown={};
+    (s.shown||[]).forEach(function(i){shown[i]=true;});
     QS.forEach(function(it){clearResult(document.getElementById(it.q));});
     applyAnswers();refreshWords();renderVocab();showDb();
     if(store.lastError()){
