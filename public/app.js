@@ -5,9 +5,9 @@ var vocab={}, answers={}, shown={}, curKey=null, curEl=null;
 function say(m){document.getElementById("status").textContent=m;}
 function trOf(k){return vocab[k]||sug(k)||"";}
 function showDb(){
-  var el=document.getElementById("db"),on=store.isOnline();
-  el.textContent=on?"Baza: ulangan":"Baza: yo'q (brauzerda saqlanadi)";
-  el.className="db "+(on?"on":"off");
+  var el=document.getElementById("db"),m=store.mode();
+  el.textContent=m==="firestore"?"Baza: Firebase Firestore":(m==="server"?"Baza: server (SQLite)":"Baza: yo'q (brauzerda saqlanadi)");
+  el.className="db "+(m==="local"?"off":"on");
 }
 
 /* ---------- sahifani qurish ---------- */
@@ -185,7 +185,9 @@ function loadState(){
     vocab=s.vocab;answers=s.answers;shown={};
     QS.forEach(function(it){clearResult(document.getElementById(it.q));});
     applyAnswers();refreshWords();renderVocab();showDb();
-    if(window.FIREBASE_CONFIG&&!store.isOnline()&&store.lastStatus()===401){
+    if(store.lastError()){
+      say("Firestore ulanmadi ("+store.lastError()+"). Database yaratilganini va Rules to'g'riligini tekshiring.");
+    }else if(store.mode()==="local"&&store.lastStatus()===401){
       say("Server tokenni qabul qilmadi. FIREBASE_PROJECT_ID to'g'ri berilganini tekshiring.");
     }
   });
@@ -214,6 +216,7 @@ if(!authReady()){
 }else{
   firebase.initializeApp(window.FIREBASE_CONFIG);
   var auth=firebase.auth();
+  if(firebase.firestore)store.useFirestore(firebase.firestore());
   store.setTokenProvider(function(){return auth.currentUser?auth.currentUser.getIdToken():null;});
   document.getElementById("signin").addEventListener("click",function(){
     var provider=new firebase.auth.GoogleAuthProvider();
