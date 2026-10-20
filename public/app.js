@@ -1,10 +1,10 @@
 function keyOf(w){return w.toLowerCase().replace(/’/g,"'").replace(/'s$/,"").replace(/'$/,"");}
 function sug(k){return SUG[k]||EASY[k]||"";}
 
-var vocab={}, answers={}, shown={}, curKey=null, curEl=null;
+var vocab={}, answers={}, shown={}, curKey=null, curEl=null, curEx=null, HEADINGS=[], QS=[], loadSeq=0;
 function say(m){document.getElementById("status").textContent=m;}
 function trOf(k){return vocab[k]||sug(k)||"";}
-function persistShown(){store.saveShown(Object.keys(shown));}
+function persistShown(){store.saveShown(curEx.id,Object.keys(shown));}
 function showDb(){
   var el=document.getElementById("db"),m=store.mode();
   el.textContent=m==="firestore"?"Baza: Firebase Firestore":(m==="server"?"Baza: server (SQLite)":"Baza: yo'q (brauzerda saqlanadi)");
@@ -14,34 +14,64 @@ function showDb(){
 /* ---------- sahifani qurish ---------- */
 var page=document.getElementById("page");
 var bankEl=document.getElementById("bank");
-HEADINGS.forEach(function(h){
-  var li=document.createElement("li");li.dataset.l=h[0];
-  li.innerHTML='<span class="L">'+h[0]+'</span><span class="name">'+h[1]+'<span class="tr">'+h[2]+'</span></span>';
-  bankEl.appendChild(li);
-});
-
 var qsEl=document.getElementById("qs"),wi=0;
-QS.forEach(function(item){
-  var box=document.createElement("section");box.className="q";box.id=item.q;
-  var head=document.createElement("div");head.className="qhead";
-  var tag=document.createElement("span");tag.className="qtag";tag.textContent=item.q;
-  var sel=document.createElement("select");sel.id="sel-"+item.q;sel.setAttribute("aria-label",item.q+" sarlavhasi");
-  var o0=document.createElement("option");o0.value="";o0.textContent="Sarlavhani tanlang";sel.appendChild(o0);
-  HEADINGS.forEach(function(h){var o=document.createElement("option");o.value=h[0];o.textContent=h[0]+") "+h[1];sel.appendChild(o);});
-  sel.addEventListener("change",function(){answers[item.q]=sel.value;store.saveAnswers(answers);clearResult(box);syncSelects();});
-  var res=document.createElement("div");res.className="res";res.hidden=true;
-  head.appendChild(tag);head.appendChild(sel);head.appendChild(res);
-  var p=document.createElement("p");p.className="passage";
-  item.t.split(/([A-Za-z][A-Za-z'’-]*)/).forEach(function(part,i){
-    if(i%2===0){if(part)p.appendChild(document.createTextNode(part));return;}
-    var w=document.createElement("span");w.className="w";w.dataset.k=keyOf(part);w.dataset.raw=part;w.dataset.i=String(wi++);
-    w.setAttribute("role","button");w.tabIndex=0;
-    var t=document.createElement("span");t.className="t";
-    var x=document.createElement("span");x.className="x";x.textContent=part;
-    w.appendChild(t);w.appendChild(x);p.appendChild(w);
+
+function buildExercise(ex){
+  curEx=ex;HEADINGS=ex.headings;QS=ex.questions;
+  answers={};shown={};wi=0;
+  document.getElementById("peyebrow").textContent=ex.eyebrow;
+  document.getElementById("ptitle").textContent=ex.title;
+  document.title="Exercise "+ex.id+" Reader";
+  bankEl.innerHTML="";qsEl.innerHTML="";
+  HEADINGS.forEach(function(h){
+    var li=document.createElement("li");li.dataset.l=h[0];
+    li.innerHTML='<span class="L">'+h[0]+'</span><span class="name">'+h[1]+'<span class="tr">'+h[2]+'</span></span>';
+    bankEl.appendChild(li);
   });
-  box.appendChild(head);box.appendChild(p);qsEl.appendChild(box);
+  QS.forEach(function(item){
+    var box=document.createElement("section");box.className="q";box.id=item.q;
+    var head=document.createElement("div");head.className="qhead";
+    var tag=document.createElement("span");tag.className="qtag";tag.textContent=item.q;
+    var sel=document.createElement("select");sel.id="sel-"+item.q;sel.setAttribute("aria-label",item.q+" sarlavhasi");
+    var o0=document.createElement("option");o0.value="";o0.textContent="Sarlavhani tanlang";sel.appendChild(o0);
+    HEADINGS.forEach(function(h){var o=document.createElement("option");o.value=h[0];o.textContent=h[0]+") "+h[1];sel.appendChild(o);});
+    sel.addEventListener("change",function(){answers[item.q]=sel.value;store.saveAnswers(curEx.id,answers);clearResult(box);syncSelects();});
+    var res=document.createElement("div");res.className="res";res.hidden=true;
+    head.appendChild(tag);head.appendChild(sel);head.appendChild(res);
+    var p=document.createElement("p");p.className="passage";
+    item.t.split(/([A-Za-z][A-Za-z'’-]*)/).forEach(function(part,i){
+      if(i%2===0){if(part)p.appendChild(document.createTextNode(part));return;}
+      var w=document.createElement("span");w.className="w";w.dataset.k=keyOf(part);w.dataset.raw=part;w.dataset.i=String(wi++);
+      w.setAttribute("role","button");w.tabIndex=0;
+      var t=document.createElement("span");t.className="t";
+      var x=document.createElement("span");x.className="x";x.textContent=part;
+      w.appendChild(t);w.appendChild(x);p.appendChild(w);
+    });
+    box.appendChild(head);box.appendChild(p);qsEl.appendChild(box);
+  });
+  document.querySelectorAll("#tabs .tab").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.id===ex.id));});
+}
+
+/* ---------- mashq almashtirgich ---------- */
+function lastEx(){try{return localStorage.getItem("ex-current");}catch(e){return null;}}
+function pickEx(id){
+  var list=window.EXERCISES||[];
+  for(var i=0;i<list.length;i++)if(list[i].id===id)return list[i];
+  return list[0];
+}
+var tabsEl=document.getElementById("tabs");
+(window.EXERCISES||[]).forEach(function(ex){
+  var b=document.createElement("button");b.type="button";b.className="tab";b.dataset.id=ex.id;
+  b.setAttribute("role","tab");b.textContent="Exercise "+ex.id;
+  b.addEventListener("click",function(){
+    if(curEx&&curEx.id===ex.id)return;
+    closePop();buildExercise(ex);say("");
+    try{localStorage.setItem("ex-current",ex.id);}catch(e){}
+    loadState();window.scrollTo(0,0);
+  });
+  tabsEl.appendChild(b);
 });
+tabsEl.hidden=(window.EXERCISES||[]).length<2;
 
 function refreshWords(){
   document.querySelectorAll(".w").forEach(function(w){
@@ -167,13 +197,14 @@ document.getElementById("check").addEventListener("click",function(){
     else{box.classList.add("bad");
       r.innerHTML=(a?"Noto'g'ri. ":"Javob tanlanmagan. ")+"To'g'ri javob: "+right[0]+") "+right[1]+'<span class="why">'+it.why+"</span>";}
   });
-  say("Natija: "+score+" / "+QS.length+". G va H ishlatilmaydi.");
+  var spare=HEADINGS.filter(function(h){return !QS.some(function(it){return it.ans===h[0];});}).map(function(h){return h[0];});
+  say("Natija: "+score+" / "+QS.length+(spare.length?". "+spare.join(" va ")+" ishlatilmaydi.":"."));
 });
 var rs=document.getElementById("reset"),rsArmed=false,rsTimer=null;
 rs.addEventListener("click",function(){
   if(!rsArmed){rsArmed=true;rs.textContent="Aniq tozalansinmi?";rsTimer=setTimeout(function(){rsArmed=false;rs.textContent="Javoblarni tozalash";},3000);return;}
   clearTimeout(rsTimer);rsArmed=false;rs.textContent="Javoblarni tozalash";
-  answers={};store.saveAnswers(answers);
+  answers={};store.saveAnswers(curEx.id,answers);
   QS.forEach(function(it){clearResult(document.getElementById(it.q));});
   applyAnswers();say("Javoblar tozalandi. Tarjimalaringiz saqlanib qoldi.");
 });
@@ -182,7 +213,9 @@ rs.addEventListener("click",function(){
 var appEl=document.getElementById("app"),loginEl=document.getElementById("login"),userEl=document.getElementById("user");
 
 function loadState(){
-  store.load().then(function(s){
+  var seq=++loadSeq,ex=curEx;
+  store.load(ex.id).then(function(s){
+    if(seq!==loadSeq||ex!==curEx)return;
     vocab=s.vocab;answers=s.answers;shown={};
     (s.shown||[]).forEach(function(i){shown[i]=true;});
     QS.forEach(function(it){clearResult(document.getElementById(it.q));});
@@ -212,6 +245,8 @@ function authReady(){
   return !!(c&&c.apiKey&&c.apiKey.indexOf("YOUR_")!==0&&window.firebase);
 }
 
+buildExercise(pickEx(lastEx()));
+
 if(!authReady()){
   /* login sozlanmagan: sahifa loginsiz ishlaydi */
   showApp(null);loadState();
@@ -237,6 +272,6 @@ if(!authReady()){
   });
   auth.onAuthStateChanged(function(user){
     if(user){store.setUser(user.uid);showApp(user);loadState();}
-    else{store.setUser("local");closePop();vocab={};answers={};shown={};showLogin();}
+    else{store.setUser("local");closePop();vocab={};answers={};shown={};loadSeq++;showLogin();}
   });
 }
